@@ -1,0 +1,9 @@
+<component-set>
+  <components>
+    <component>
+      <role>org.codehaus.plexus.component.configurator.ComponentConfigurator</role>
+      <role-hint>custom-basic</role-hint>
+      <implementation>org.wildfly.plugin.provision.CustomBasicComponentConfigurator</implementation>
+    </component>
+  </components>
+</component-set>

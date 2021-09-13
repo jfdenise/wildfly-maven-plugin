@@ -126,6 +126,7 @@
         <module>core</module>
         <module>plugin</module>
         <module>tests</module>
+        <module>resolver</module>
     </modules>
 
     <build>

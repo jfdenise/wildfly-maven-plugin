@@ -34,7 +34,45 @@
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
                 <version>2.1.0.Beta2-SNAPSHOT</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-plugin-resolver</artifactId>
+                        <version>2.1.0.Beta2-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
+                    <provisioningConfig>
+                            <feature-packs>
+                                <feature-pack>
+                                    <location>wildfly@maven(org.jboss.universe:community-universe)</location>
+                                </feature-pack>
+                            </feature-packs>
+                            <server-config>
+                                <layers>
+                                    <layer>jaxrs-server</layer>
+                                    <layer>observability</layer>
+                                </layers>
+                            </server-config>
+                            <plugin-options>
+                                <jboss-fork-embedded>true</jboss-fork-embedded>
+                            </plugin-options>
+                    </provisioningConfig>
+                    <resolverConfiguration>
+                        <feature-packs>
+                            <feature-pack>
+                                <location>wildfly@maven(org.jboss.universe:community-universe)</location>
+                            </feature-pack>
+                        </feature-packs>
+                        <server-configuration>
+                            <layers>
+                                <layer>jaxrs-server</layer>
+                            </layers>
+                        </server-configuration>
+                        <plugin-options>
+                            <jboss-fork-embedded>true</jboss-fork-embedded>
+                        </plugin-options>
+                    </resolverConfiguration>
                     <feature-packs>
                         <feature-pack>
                             <location>wildfly@maven(org.jboss.universe:community-universe)</location>

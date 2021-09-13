@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import javax.xml.stream.XMLStreamException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
@@ -53,6 +54,7 @@ import org.wildfly.plugin.common.Utils;
 import org.wildfly.plugin.core.GalleonUtils;
 import static org.wildfly.plugin.core.Constants.PLUGIN_PROVISIONING_FILE;
 import org.wildfly.plugin.core.MavenRepositoriesEnricher;
+import org.wildfly.plugin.core.Resolver;
 
 
 /**
@@ -154,6 +156,9 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}/", property = PropertyNames.DEPLOYMENT_TARGET_DIR)
     protected File targetDir;
 
+    @Parameter
+    ProvConfig provisioningConfig;
+
     private Path wildflyDir;
 
     private MavenRepoManager artifactResolver;
@@ -170,7 +175,11 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
 
         wildflyDir = targetDir.toPath().resolve(provisionDirectoryName);
         IoUtils.recursiveDelete(wildflyDir);
-
+        ServiceLoader<Resolver> loader = ServiceLoader.load(Resolver.class);
+        System.out.println("CONFIG " + provisioningConfig.getConfig());
+        for (Resolver extension : loader) {
+            extension.doit(provisioningConfig.getConfig());
+        }
         try {
             provisionServer(wildflyDir);
         } catch (ProvisioningException | IOException | XMLStreamException ex) {

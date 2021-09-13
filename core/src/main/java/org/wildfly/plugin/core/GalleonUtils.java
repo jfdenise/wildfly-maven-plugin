@@ -17,6 +17,7 @@
 package org.wildfly.plugin.core;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,6 @@ import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ConfigModel;
 import org.jboss.galleon.config.FeaturePackConfig;
 import org.jboss.galleon.config.ProvisioningConfig;
-import org.jboss.galleon.maven.plugin.util.Configuration;
 import org.jboss.galleon.maven.plugin.util.ConfigurationId;
 import org.jboss.galleon.maven.plugin.util.FeaturePack;
 import org.jboss.galleon.universe.FeaturePackLocation;
@@ -40,6 +40,44 @@ import static org.wildfly.plugin.core.Constants.STANDALONE_XML;
  */
 public class GalleonUtils {
 
+    public static class ServerConfiguration {
+        private String model = STANDALONE;
+        private String name = STANDALONE_XML;
+        private List<String> layers = new ArrayList<>();
+        private List<String> excludedLayers = new ArrayList<>();
+
+        public String getModel() {
+            return model;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public List<String> getLayers() {
+            return layers;
+        }
+
+        public List<String> getExcludedLayers() {
+            return excludedLayers;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setLayers(List<String> layers) {
+            this.layers = layers;
+        }
+
+        public void setExcludedLayers(List<String> excludedLayers) {
+            this.excludedLayers = excludedLayers;
+        }
+    }
     /**
      * Galleon provisioning of a default server.
      *
@@ -83,7 +121,7 @@ public class GalleonUtils {
      */
     public static ProvisioningConfig buildConfig(ProvisioningManager pm,
             List<FeaturePack> featurePacks,
-            List<Configuration> configurations,
+            List<ServerConfiguration> configurations,
             Map<String, String> pluginOptions) throws ProvisioningException, IllegalArgumentException {
         final ProvisioningConfig.Builder state = ProvisioningConfig.builder();
         for (FeaturePack fp : featurePacks) {
@@ -150,7 +188,7 @@ public class GalleonUtils {
         }
 
         boolean hasLayers = false;
-        for (Configuration config : configurations) {
+        for (ServerConfiguration config : configurations) {
             String model = config.getModel() == null ? STANDALONE : config.getModel();
             String name = config.getName() == null ? STANDALONE_XML : config.getName();
             ConfigModel.Builder configBuilder = ConfigModel.
