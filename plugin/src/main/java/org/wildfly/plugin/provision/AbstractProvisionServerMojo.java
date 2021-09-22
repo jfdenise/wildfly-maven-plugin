@@ -45,6 +45,7 @@ import org.jboss.galleon.maven.plugin.util.Configuration;
 import org.jboss.galleon.maven.plugin.util.FeaturePack;
 import org.jboss.galleon.maven.plugin.util.MavenArtifactRepositoryManager;
 import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
+import org.jboss.galleon.universe.maven.MavenUniverseException;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
 import org.jboss.galleon.util.IoUtils;
 import org.jboss.galleon.xml.ProvisioningXmlWriter;
@@ -54,6 +55,7 @@ import org.wildfly.plugin.core.GalleonUtils;
 import static org.wildfly.plugin.core.Constants.PLUGIN_PROVISIONING_FILE;
 import org.wildfly.plugin.core.MavenRepositoriesEnricher;
 
+import com.redhat.prospero.ChannelMavenArtifactRepositoryManager;
 
 /**
  * Provision a server
@@ -154,6 +156,13 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}/", property = PropertyNames.DEPLOYMENT_TARGET_DIR)
     protected File targetDir;
 
+    @Parameter(alias = "channels-file")
+    protected File channelsFile;
+    @Parameter(alias = "local-cache")
+    protected File localCache;
+    @Parameter(alias = "disable-latest")
+    protected boolean disableLatest;
+
     private Path wildflyDir;
 
     private MavenRepoManager artifactResolver;
@@ -165,18 +174,40 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
             return;
         }
         MavenRepositoriesEnricher.enrich(session, project, repositories);
-        artifactResolver = offline ? new MavenArtifactRepositoryManager(repoSystem, repoSession)
-                : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
-
+        if (channelsFile == null) {
+            artifactResolver = offline ? new MavenArtifactRepositoryManager(repoSystem, repoSession)
+                    : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
+        } else {
+            try {
+                Path channelsFilePath = resolvePath(project, channelsFile.toPath());
+                artifactResolver = new ChannelMavenArtifactRepositoryManager(repoSystem, repoSession, repositories,
+                        channelsFilePath, disableLatest, localCache == null ? null : localCache.toPath());
+            } catch (ProvisioningException ex) {
+                throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
+            }
+        }
+        try {
         wildflyDir = targetDir.toPath().resolve(provisionDirectoryName);
         IoUtils.recursiveDelete(wildflyDir);
 
         try {
             provisionServer(wildflyDir);
+            if (artifactResolver instanceof ChannelMavenArtifactRepositoryManager) {
+                ((ChannelMavenArtifactRepositoryManager) artifactResolver).done(wildflyDir);
+            }
         } catch (ProvisioningException | IOException | XMLStreamException ex) {
             throw new MojoExecutionException("Provisioning failed", ex);
+            }
+            serverProvisioned(wildflyDir);
+        } finally {
+            try {
+                if (artifactResolver instanceof ChannelMavenArtifactRepositoryManager) {
+                    ((ChannelMavenArtifactRepositoryManager) artifactResolver).close();
+                }
+            } catch (MavenUniverseException ex) {
+                throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
+            }
         }
-        serverProvisioned(wildflyDir);
     }
 
     protected abstract void serverProvisioned(Path jbossHome) throws MojoExecutionException, MojoFailureException;

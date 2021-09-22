@@ -98,7 +98,7 @@
         <version.org.mockito.mockito>2.18.3</version.org.mockito.mockito>
 
         <!-- galleon properties -->
-        <version.org.jboss.galleon>4.2.8.Final</version.org.jboss.galleon>
+        <version.org.jboss.galleon>4.2.9.Final-SNAPSHOT</version.org.jboss.galleon>
         <plugin.fork.embedded>true</plugin.fork.embedded>
         <!-- used by tests -->
         <version.org.jboss.logging.slf4j-jboss-logging>1.2.1.Final</version.org.jboss.logging.slf4j-jboss-logging>
@@ -225,6 +225,11 @@
                 <groupId>org.jboss.galleon</groupId>
                 <artifactId>galleon-maven-plugin</artifactId>
                 <version>${version.org.jboss.galleon}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.redhat.propsero</groupId>
+                <artifactId>prospero-galleon-plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.logging</groupId>

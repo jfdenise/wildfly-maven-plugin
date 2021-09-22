@@ -184,11 +184,16 @@ public class GalleonUtils {
         StringBuilder builder = new StringBuilder();
         builder.append(fp.getGroupId()).append(":").append(fp.getArtifactId());
         String type = fp.getExtension() == null ? fp.getType() : fp.getExtension();
-        if (fp.getClassifier() != null || type != null) {
-            builder.append(":").append(fp.getClassifier() == null ? "" : fp.getClassifier()).append(":").append(type == null ? "" : type);
+        if (fp.getClassifier() != null) {
+            builder.append(":").append(fp.getClassifier());
+        } else {
+            builder.append(":");
         }
+        builder.append(":" + type);
         if (fp.getVersion() != null) {
             builder.append(":").append(fp.getVersion());
+        } else {
+            builder.append(":");
         }
         return builder.toString();
     }

@@ -35,14 +35,27 @@
                 <artifactId>wildfly-maven-plugin</artifactId>
                 <version>2.1.0.Beta2-SNAPSHOT</version>
                 <configuration>
+                    <recordState>true</recordState>
+                    <channels-file>channels.json</channels-file>
+                    <disable-latest>false</disable-latest>
+                    <!--<local-cache>/home/jdenise/workspaces/wildfly-maven-plugin/examples/jaxrs/local-cache2</local-cache>-->
                     <feature-packs>
                         <feature-pack>
-                            <location>wildfly@maven(org.jboss.universe:community-universe)</location>
+                            <!--<location>org.wildfly:wildfly-ee-galleon-pack::zip@maven(resolver=jboss-installer)</location>-->
+                            <!--<groupId>org.wildfly</groupId>
+                            <artifactId>wildfly-ee-galleon-pack</artifactId>-->
+                            <!--<version>25.0.0.Beta1-SNAPSHOT</version>-->
+                            <!--<location>org.wildfly:wildfly-ee-galleon-pack:25.0.0.Beta1-SNAPSHOT</location>-->
+                            <location>wildfly@maven(org.jboss.universe:community-universe)#24.0.0.Final</location>
                         </feature-pack>
+                       <!--<feature-pack>
+                            <location>org.wildfly:wildfly-datasources-galleon-pack:2.0.4.Final-SNAPSHOT</location>                            
+                        </feature-pack>-->
                     </feature-packs>
                     <server-configuration>
                         <layers>
                             <layer>jaxrs-server</layer>
+                            <!--<layer>mariadb-driver</layer>-->
                         </layers>
                     </server-configuration>
                     <plugin-options>
