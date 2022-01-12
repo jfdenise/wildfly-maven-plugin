@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -44,7 +46,7 @@ import static org.wildfly.plugin.core.Constants.CLI_ECHO_COMMAND_ARG;
 import static org.wildfly.plugin.core.Constants.STANDALONE;
 import static org.wildfly.plugin.core.Constants.STANDALONE_XML;
 import org.wildfly.plugin.deployment.PackageType;
-
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 /**
  * Provision a server, copy extra content and deploy primary artifact if it
  * exists
@@ -318,15 +320,38 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
         }
     }
 
-    private Path getDeploymentContent() throws MojoExecutionException {
-        final PackageType packageType = PackageType.resolve(project);
-        final String filename;
-        if (this.filename == null) {
-            filename = String.format("%s.%s", project.getBuild().getFinalName(), packageType.getFileExtension());
-        } else {
-            filename = this.filename;
+    private String getDeploymentFileName() {
+        if (this.filename != null) {
+           return this.filename;
         }
-        Path deployment = targetDir.toPath().resolve(filename);
+        String fileName = null;
+        final PackageType packageType = PackageType.resolve(project);
+        if ("war".equalsIgnoreCase(packageType.getFileExtension())) {
+            fileName = getMavenWarPluginName();
+        }
+        if (fileName == null) {
+            fileName = project.getBuild().getFinalName();
+        }
+        return String.format("%s.%s", fileName, packageType.getFileExtension());
+    }
+
+    private String getMavenWarPluginName() {
+        String warName = null;
+        Plugin warPlugin = project.getPlugin("org.apache.maven.plugins:maven-war-plugin");
+        if (warPlugin != null) {
+            for (PluginExecution execution : warPlugin.getExecutions()) {
+                System.out.println("EXECUTION " + execution.getId());
+                if ("default-war".equals(execution.getId())) {
+                    Xpp3Dom configuration = (Xpp3Dom) execution.getConfiguration();
+                    warName = getChildValue(configuration, "warName");
+                }
+            }
+        }
+        return warName;
+    }
+
+    private Path getDeploymentContent() throws MojoExecutionException {
+        Path deployment = targetDir.toPath().resolve(getDeploymentFileName());
         if (Files.notExists(deployment)) {
             if (this.filename != null ) {
                 throw new MojoExecutionException("No deployment found wih name " + this.filename);
@@ -338,6 +363,21 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
             getLog().warn("No deployment file found, the server will not contain a deployment");
         }
         return deployment;
+    }
+
+    private static String getChildValue(Xpp3Dom dom, String... childNodePath) {
+        if (dom == null) {
+            return null;
+        }
+
+        Xpp3Dom node = dom;
+        for (String child : childNodePath) {
+            node = node.getChild(child);
+            if (node == null) {
+                return null;
+            }
+        }
+        return node.getValue();
     }
 
     private static void cleanupServer(Path jbossHome) throws IOException {
