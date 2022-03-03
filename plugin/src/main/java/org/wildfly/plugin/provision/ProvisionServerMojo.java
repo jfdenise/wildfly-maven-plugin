@@ -22,6 +22,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.jboss.galleon.config.ProvisioningConfig;
 
 
 /**
@@ -39,7 +40,7 @@ public class ProvisionServerMojo extends AbstractProvisionServerMojo {
     }
 
     @Override
-    protected void serverProvisioned(Path jbossHome) throws MojoExecutionException, MojoFailureException {
+    protected void serverProvisioned(ProvisioningConfig config, Path jbossHome) throws MojoExecutionException, MojoFailureException {
     }
 
 }

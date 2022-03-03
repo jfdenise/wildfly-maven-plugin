@@ -183,7 +183,7 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     }
 
     @Override
-    protected void serverProvisioned(Path jbossHome) throws MojoExecutionException, MojoFailureException {
+    protected void serverProvisioned(ProvisioningConfig config, Path jbossHome) throws MojoExecutionException, MojoFailureException {
         try {
             if (StandardOutput.isFile(stdout)) {
                 // Delete it, we are appending to it.

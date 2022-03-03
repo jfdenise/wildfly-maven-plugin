@@ -93,7 +93,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
      * </pre>
      */
     @Parameter(required = false, alias = "galleon-options")
-    Map<String, String> galleonOptions = Collections.emptyMap();
+    protected Map<String, String> galleonOptions = Collections.emptyMap();
 
     /**
      * Whether to use offline mode when the plugin resolves an artifact. In
@@ -107,13 +107,13 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
      * Whether to log provisioning time at the end
      */
     @Parameter(alias = "log-provisioning-time", defaultValue = "false", property = PropertyNames.WILDFLY_PROVISIONING_LOG_TIME)
-    boolean logProvisioningTime;
+    protected boolean logProvisioningTime;
 
     /**
      * Whether to record provisioning state in .galleon directory.
      */
     @Parameter(alias = "record-provisioning-state", defaultValue = "false", property = PropertyNames.WILDFLY_PROVISIONING_RECORD_STATE)
-    boolean recordProvisioningState;
+    protected boolean recordProvisioningState;
 
     /**
      * Set to {@code true} if you want the goal to be skipped, otherwise
@@ -185,12 +185,13 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
         }
         IoUtils.recursiveDelete(wildflyDir);
         try {
+            ProvisioningConfig config;
             try {
-                provisionServer(wildflyDir);
+                config = provisionServer(wildflyDir);
             } catch (ProvisioningException | IOException | XMLStreamException ex) {
                 throw new MojoExecutionException("Provisioning failed", ex);
             }
-            serverProvisioned(wildflyDir);
+            serverProvisioned(config, wildflyDir);
         } finally {
             // Although cli and embedded are run in their own classloader,
             // the module.path system property has been set and needs to be cleared for
@@ -205,17 +206,17 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
 
     protected abstract String getGoal();
 
-    protected abstract void serverProvisioned(Path jbossHome) throws MojoExecutionException, MojoFailureException;
+    protected abstract void serverProvisioned(ProvisioningConfig config, Path jbossHome) throws MojoExecutionException, MojoFailureException;
 
-    private void provisionServer(Path home) throws ProvisioningException,
+    private ProvisioningConfig provisionServer(Path home) throws ProvisioningException,
             MojoExecutionException, IOException, XMLStreamException {
+        ProvisioningConfig config = null;
         try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(artifactResolver)
                 .setInstallationHome(home)
                 .setMessageWriter(new MvnMessageWriter(getLog()))
                 .setLogTime(logProvisioningTime)
                 .setRecordState(recordProvisioningState)
                 .build()) {
-            ProvisioningConfig config = null;
             Path resolvedProvisioningFile = resolvePath(project, provisioningFile.toPath());
             boolean provisioningFileExists = Files.exists(resolvedProvisioningFile);
             if (featurePacks.isEmpty()) {
@@ -245,11 +246,16 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                         + "that the list of Galleon feature-packs and Galleon layers are properly configured.");
                 throw new MojoExecutionException("Invalid plugin configuration, no server provisioned.");
             }
-            if (!recordProvisioningState) {
-                Path file = home.resolve(PLUGIN_PROVISIONING_FILE);
-                try (FileWriter writer = new FileWriter(file.toFile())) {
-                    ProvisioningXmlWriter.getInstance().write(config, writer);
-                }
+            storePluginProvisiningFile(config, home);
+        }
+        return config;
+    }
+
+    protected void storePluginProvisiningFile(ProvisioningConfig config, Path home) throws IOException, XMLStreamException {
+        if (!recordProvisioningState) {
+            Path file = home.resolve(PLUGIN_PROVISIONING_FILE);
+            try (FileWriter writer = new FileWriter(file.toFile())) {
+                ProvisioningXmlWriter.getInstance().write(config, writer);
             }
         }
     }
