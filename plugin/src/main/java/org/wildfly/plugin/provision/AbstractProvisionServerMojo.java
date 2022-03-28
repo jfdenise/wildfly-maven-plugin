@@ -63,22 +63,22 @@ import org.wildfly.plugin.core.MavenRepositoriesEnricher;
 abstract class AbstractProvisionServerMojo extends AbstractMojo {
 
     @Component
-    RepositorySystem repoSystem;
+    protected RepositorySystem repoSystem;
 
     @Component
-    MavenProjectHelper projectHelper;
+    protected MavenProjectHelper projectHelper;
 
     @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
-    RepositorySystemSession repoSession;
+    protected RepositorySystemSession repoSession;
 
     @Parameter(defaultValue = "${project.remoteProjectRepositories}", readonly = true, required = true)
-    List<RemoteRepository> repositories;
+    protected List<RemoteRepository> repositories;
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
-    MavenProject project;
+    protected MavenProject project;
 
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
-    MavenSession session;
+    protected MavenSession session;
 
     /**
      * Arbitrary Galleon options used when provisioning the server. In case you
@@ -93,7 +93,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
      * </pre>
      */
     @Parameter(required = false, alias = "galleon-options")
-    Map<String, String> galleonOptions = Collections.emptyMap();
+    protected Map<String, String> galleonOptions = Collections.emptyMap();
 
     /**
      * Whether to use offline mode when the plugin resolves an artifact. In
@@ -101,53 +101,53 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
      * artifact resolution.
      */
     @Parameter(alias = "offline-provisioning", defaultValue = "false", property = PropertyNames.WILDFLY_PROVISIONING_OFFLINE)
-    boolean offlineProvisioning;
+    protected boolean offlineProvisioning;
 
     /**
      * Whether to log provisioning time at the end
      */
     @Parameter(alias = "log-provisioning-time", defaultValue = "false", property = PropertyNames.WILDFLY_PROVISIONING_LOG_TIME)
-    boolean logProvisioningTime;
+    protected boolean logProvisioningTime;
 
     /**
      * Whether to record provisioning state in .galleon directory.
      */
     @Parameter(alias = "record-provisioning-state", defaultValue = "false", property = PropertyNames.WILDFLY_PROVISIONING_RECORD_STATE)
-    boolean recordProvisioningState;
+    protected boolean recordProvisioningState;
 
     /**
      * Set to {@code true} if you want the goal to be skipped, otherwise
      * {@code false}.
      */
     @Parameter(defaultValue = "false", property = PropertyNames.SKIP_PROVISION)
-    private boolean skip;
+    protected boolean skip;
 
     /**
      * The directory name inside the buildDir where to provision the server. By default the server is provisioned into the 'server' directory.
      */
     @Parameter(alias = "provisioning-dir", property = PropertyNames.WILDFLY_PROVISIONING_DIR, defaultValue = Utils.WILDFLY_DEFAULT_DIR)
-    private String provisioningDir;
+    protected String provisioningDir;
 
     /**
      * A list of feature-pack configurations to install, can be combined with
      * layers.
      */
     @Parameter(required = false, alias= "feature-packs")
-    List<FeaturePack> featurePacks = Collections.emptyList();
+    protected List<FeaturePack> featurePacks = Collections.emptyList();
 
 /**
      * A list of Galleon layers to provision. Can be used when
      * feature-pack-location or feature-packs are set.
      */
     @Parameter(alias = "layers", required = false)
-    List<String> layers = Collections.emptyList();
+    protected List<String> layers = Collections.emptyList();
 
     /**
      * A list of Galleon layers to exclude. Can be used when
      * feature-pack-location or feature-packs are set.
      */
     @Parameter(alias = "excluded-layers", required = false)
-    List<String> excludedLayers = Collections.emptyList();
+    protected List<String> excludedLayers = Collections.emptyList();
 
     /**
      * The path to the {@code provisioning.xml} file to use. Note that this cannot be used with the {@code feature-packs}
@@ -155,14 +155,14 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
      * If the provisioning file is not absolute, it has to be relative to the project base directory.
      */
     @Parameter(alias = "provisioning-file", property = PropertyNames.WILDFLY_PROVISIONING_FILE, defaultValue = "${project.basedir}/galleon/provisioning.xml")
-    private File provisioningFile;
+    protected File provisioningFile;
 
     /**
      * The name of the configuration file generated from layers. Default value is {@code standalone.xml}.
      * If no {@code layers} have been configured, setting this parameter is invalid.
      */
     @Parameter(alias = "layers-configuration-file-name", property = PropertyNames.WILDFLY_LAYERS_CONFIGURATION_FILE_NAME, defaultValue = STANDALONE_XML)
-    String layersConfigurationFileName;
+    protected String layersConfigurationFileName;
 
     private Path wildflyDir;
 
@@ -175,8 +175,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
             return;
         }
         enrichRepositories();
-        artifactResolver = offlineProvisioning ? new MavenArtifactRepositoryManager(repoSystem, repoSession)
-                : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
+        artifactResolver = buildArtifactResolver();
 
         Path targetPath = Paths.get(project.getBuild().getDirectory());
         wildflyDir = targetPath.resolve(provisioningDir).normalize();
@@ -199,6 +198,11 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
         }
     }
 
+    protected MavenRepoManager buildArtifactResolver() throws MojoExecutionException {
+        return offlineProvisioning ? new MavenArtifactRepositoryManager(repoSystem, repoSession)
+                : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
+    }
+
     protected void enrichRepositories() throws MojoExecutionException {
         MavenRepositoriesEnricher.enrich(session, project, repositories);
     }
@@ -207,10 +211,10 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
 
     protected abstract void serverProvisioned(Path jbossHome) throws MojoExecutionException, MojoFailureException;
 
-    private void provisionServer(Path home) throws ProvisioningException,
+    private void provisionServer(Path jbossHome) throws ProvisioningException,
             MojoExecutionException, IOException, XMLStreamException {
         try (ProvisioningManager pm = ProvisioningManager.builder().addArtifactResolver(artifactResolver)
-                .setInstallationHome(home)
+                .setInstallationHome(jbossHome)
                 .setMessageWriter(new MvnMessageWriter(getLog()))
                 .setLogTime(logProvisioningTime)
                 .setRecordState(recordProvisioningState)
@@ -237,19 +241,24 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                 }
                 config = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions, layersConfigurationFileName);
             }
-            getLog().info("Provisioning server in " + home);
+            getLog().info("Provisioning server in " + jbossHome);
             pm.provision(config);
             // Check that at least the standalone or domain directories have been generated.
-            if (!Files.exists(home.resolve("standalone")) && !Files.exists(home.resolve("domain"))) {
-                getLog().error("Invalid galleon provisioning, no server provisioned in " + home + ". Make sure "
+            if (!Files.exists(jbossHome.resolve("standalone")) && !Files.exists(jbossHome.resolve("domain"))) {
+                getLog().error("Invalid galleon provisioning, no server provisioned in " + jbossHome + ". Make sure "
                         + "that the list of Galleon feature-packs and Galleon layers are properly configured.");
                 throw new MojoExecutionException("Invalid plugin configuration, no server provisioned.");
             }
-            if (!recordProvisioningState) {
-                Path file = home.resolve(PLUGIN_PROVISIONING_FILE);
-                try (FileWriter writer = new FileWriter(file.toFile())) {
-                    ProvisioningXmlWriter.getInstance().write(config, writer);
-                }
+            persistProvisioningState(jbossHome, config);
+        }
+    }
+
+    protected void persistProvisioningState(Path jbossHome, ProvisioningConfig config) throws IOException,
+            MojoExecutionException, XMLStreamException {
+        if (!recordProvisioningState) {
+            Path file = jbossHome.resolve(PLUGIN_PROVISIONING_FILE);
+            try (FileWriter writer = new FileWriter(file.toFile())) {
+                ProvisioningXmlWriter.getInstance().write(config, writer);
             }
         }
     }
@@ -258,7 +267,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
         return GalleonUtils.buildDefaultConfig();
     }
 
-    static Path resolvePath(MavenProject project, Path path) {
+    protected static Path resolvePath(MavenProject project, Path path) {
         if (!path.isAbsolute()) {
             path = Paths.get(project.getBasedir().getAbsolutePath()).resolve(path);
         }
