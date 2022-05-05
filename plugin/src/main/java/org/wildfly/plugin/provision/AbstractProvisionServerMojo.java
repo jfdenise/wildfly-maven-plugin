@@ -44,6 +44,7 @@ import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.maven.plugin.util.MavenArtifactRepositoryManager;
 import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
+import org.jboss.galleon.runtime.ProvisioningRuntime;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
 import org.jboss.galleon.util.IoUtils;
 import org.jboss.galleon.xml.ProvisioningXmlWriter;
@@ -269,17 +270,19 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                 config = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions, layersConfigurationFileName);
             }
             getLog().info("Provisioning server in " + home);
-            pm.provision(config);
-            // Check that at least the standalone or domain directories have been generated.
-            if (!Files.exists(home.resolve("standalone")) && !Files.exists(home.resolve("domain"))) {
-                getLog().error("Invalid galleon provisioning, no server provisioned in " + home + ". Make sure "
-                        + "that the list of Galleon feature-packs and Galleon layers are properly configured.");
-                throw new MojoExecutionException("Invalid plugin configuration, no server provisioned.");
-            }
-            if (!recordProvisioningState) {
-                Path file = home.resolve(PLUGIN_PROVISIONING_FILE);
-                try (FileWriter writer = new FileWriter(file.toFile())) {
-                    ProvisioningXmlWriter.getInstance().write(config, writer);
+            try (ProvisioningRuntime rt = pm.getRuntime(config)) {
+                pm.provision(rt.getLayout());
+                // Check that at least the standalone or domain directories have been generated.
+                if (!Files.exists(home.resolve("standalone")) && !Files.exists(home.resolve("domain"))) {
+                    getLog().error("Invalid galleon provisioning, no server provisioned in " + home + ". Make sure "
+                            + "that the list of Galleon feature-packs and Galleon layers are properly configured.");
+                    throw new MojoExecutionException("Invalid plugin configuration, no server provisioned.");
+                }
+                if (!recordProvisioningState) {
+                    Path file = home.resolve(PLUGIN_PROVISIONING_FILE);
+                    try (FileWriter writer = new FileWriter(file.toFile())) {
+                        ProvisioningXmlWriter.getInstance().write(rt.getProvisioningConfig(), writer);
+                    }
                 }
             }
         }
