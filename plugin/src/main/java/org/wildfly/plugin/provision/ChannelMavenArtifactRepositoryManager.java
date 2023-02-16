@@ -92,7 +92,7 @@ public class ChannelMavenArtifactRepositoryManager implements MavenRepoManager, 
             try {
                 org.wildfly.channel.MavenArtifact mavenArtifact = channelSession.resolveDirectMavenArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getExtension(), artifact.getClassifier(), artifact.getVersion());
                 artifact.setPath(mavenArtifact.getFile().toPath());
-            } catch (UnresolvedMavenArtifactException e) {
+            } catch (IOException | UnresolvedMavenArtifactException e) {
                 // if the artifact can not be resolved directly either, we abort
                 throw new MavenUniverseException(e.getLocalizedMessage(), e);
             }

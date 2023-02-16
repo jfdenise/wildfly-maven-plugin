@@ -38,12 +38,16 @@ public class ChannelConfiguration {
 
     private URL url;
     private ChannelManifestCoordinate manifestCoordinate;
-
+    private URL publicKey;
     /**
      * @return the url
      */
     public URL getUrl() {
         return url;
+    }
+
+    public URL getPublicKey() {
+        return publicKey;
     }
 
     /**
@@ -90,7 +94,7 @@ public class ChannelConfiguration {
             for (RemoteRepository r : repositories) {
                 repos.add(new Repository(r.getId(), r.getUrl()));
             }
-            channel = new Channel(null, null, null, repos, getManifestCoordinate(), null, null);
+            channel = new Channel(null, null, null, repos, getManifestCoordinate(), null, null, publicKey);
         } else {
             try {
                 channel = ChannelMapper.from(getUrl());
