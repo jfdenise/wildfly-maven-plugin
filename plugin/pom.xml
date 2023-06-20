@@ -203,6 +203,10 @@
             <groupId>org.wildfly.glow</groupId>
             <artifactId>glow-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wildfly.plugins</groupId>
+            <artifactId>wildfly-jar-maven-plugin-core</artifactId>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
