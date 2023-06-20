@@ -254,31 +254,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                 .setLogTime(logProvisioningTime)
                 .setRecordState(recordProvisioningState)
                 .build()) {
-            ProvisioningConfig config = null;
-            Path resolvedProvisioningFile = resolvePath(project, provisioningFile.toPath());
-            boolean provisioningFileExists = Files.exists(resolvedProvisioningFile);
-            if (featurePacks.isEmpty()) {
-                if (provisioningFileExists) {
-                    getLog().info("Provisioning server using " + resolvedProvisioningFile + " file.");
-                    config = GalleonUtils.buildConfig(resolvedProvisioningFile);
-                } else {
-                    config = getDefaultConfig();
-                    if (config == null) {
-                        throw new MojoExecutionException("No feature-pack has been configured, can't provision a server.");
-                    }
-                }
-            } else {
-                if (provisioningFileExists) {
-                    getLog().warn(
-                            "Galleon provisioning file " + provisioningFile + " is ignored, plugin configuration is used.");
-                }
-                if (layers.isEmpty() && !STANDALONE_XML.equals(layersConfigurationFileName)) {
-                    throw new MojoExecutionException(
-                            "layers-configuration-file-name has been set although no layers are defined.");
-                }
-                config = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions,
-                        layersConfigurationFileName);
-            }
+            ProvisioningConfig config = buildGalleonConfig(pm);
             getLog().info("Provisioning server in " + home);
             PluginProgressTracker.initTrackers(pm, getLog());
             pm.provision(config);
@@ -295,6 +271,37 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                 }
             }
         }
+    }
+
+    protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm)
+            throws MojoExecutionException, ProvisioningException,
+            IOException, XMLStreamException {
+        ProvisioningConfig config = null;
+        Path resolvedProvisioningFile = resolvePath(project, provisioningFile.toPath());
+        boolean provisioningFileExists = Files.exists(resolvedProvisioningFile);
+        if (featurePacks.isEmpty()) {
+            if (provisioningFileExists) {
+                getLog().info("Provisioning server using " + resolvedProvisioningFile + " file.");
+                config = GalleonUtils.buildConfig(resolvedProvisioningFile);
+            } else {
+                config = getDefaultConfig();
+                if (config == null) {
+                    throw new MojoExecutionException("No feature-pack has been configured, can't provision a server.");
+                }
+            }
+        } else {
+            if (provisioningFileExists) {
+                getLog().warn(
+                        "Galleon provisioning file " + provisioningFile + " is ignored, plugin configuration is used.");
+            }
+            if (layers.isEmpty() && !STANDALONE_XML.equals(layersConfigurationFileName)) {
+                throw new MojoExecutionException(
+                        "layers-configuration-file-name has been set although no layers are defined.");
+            }
+            config = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions,
+                    layersConfigurationFileName);
+        }
+        return config;
     }
 
     protected ProvisioningConfig getDefaultConfig() throws ProvisioningDescriptionException {
