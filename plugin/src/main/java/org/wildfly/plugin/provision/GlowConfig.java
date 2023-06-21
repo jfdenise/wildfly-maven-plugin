@@ -32,11 +32,13 @@ import org.wildfly.glow.ScanArguments.Builder;
  */
 public class GlowConfig {
 
-    String executionContext = "bare-metal";
+    String context = "bare-metal";
     String profile;
     Set<String> addOns = Collections.emptySet();
     String version;
     boolean suggest;
+    private Set<String> layersForJndi = Collections.emptySet();
+    private boolean failsOnError = true;
 
     public GlowConfig() {
     }
@@ -48,8 +50,9 @@ public class GlowConfig {
         }
         List<Path> lst = new ArrayList<>();
         lst.add(deployment);
-        Builder builder = Arguments.scanBuilder().setExecutionContext(executionContext).setExecutionProfiles(profiles)
-                .setUserEnabledAddOns(addOns).setBinaries(lst).setSuggest(suggest).setVersion(version);
+        Builder builder = Arguments.scanBuilder().setExecutionContext(context).setExecutionProfiles(profiles)
+                .setUserEnabledAddOns(addOns).setBinaries(lst).setSuggest(suggest).setJndiLayers(getLayersForJndi())
+                .setVersion(version);
         if (inProvisioning != null) {
             builder.setProvisoningXML(inProvisioning);
         }
@@ -57,17 +60,17 @@ public class GlowConfig {
     }
 
     /**
-     * @return the executionContext
+     * @return the execution context
      */
-    public String getExecutionContext() {
-        return executionContext;
+    public String getContext() {
+        return context;
     }
 
     /**
-     * @param executionContext the executionContext to set
+     * @param context the execution context to set
      */
-    public void setExecutionContext(String executionContext) {
-        this.executionContext = executionContext;
+    public void setContext(String context) {
+        this.context = context;
     }
 
     /**
@@ -124,5 +127,33 @@ public class GlowConfig {
      */
     public void setSuggest(boolean suggest) {
         this.suggest = suggest;
+    }
+
+    /**
+     * @return the layersForJndi
+     */
+    public Set<String> getLayersForJndi() {
+        return layersForJndi;
+    }
+
+    /**
+     * @param layersForJndi the layersForJndi to set
+     */
+    public void setLayersForJndi(Set<String> layersForJndi) {
+        this.layersForJndi = layersForJndi;
+    }
+
+    /**
+     * @return the failsOnError
+     */
+    public boolean isFailsOnError() {
+        return failsOnError;
+    }
+
+    /**
+     * @param failsOnError the failsOnError to set
+     */
+    public void setFailsOnError(boolean failsOnError) {
+        this.failsOnError = failsOnError;
     }
 }
