@@ -243,10 +243,11 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
             throw new MojoExecutionException("excluded layers must be empty when enabling glow");
         }
         Path inProvisioningFile = null;
+        Path outputFolder = Paths.get(project.getBuild().getDirectory()).resolve("glow-scan");
+        Files.createDirectories(outputFolder);
         if (!featurePacks.isEmpty()) {
             ProvisioningConfig in = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions,
                     layersConfigurationFileName);
-            Path outputFolder = Paths.get(project.getBuild().getDirectory()).resolve("glow-scan");
             inProvisioningFile = outputFolder.resolve("glow-in-provisioning.xml");
             try (FileWriter fileWriter = new FileWriter(inProvisioningFile.toFile())) {
                 ProvisioningXmlWriter.getInstance().write(in, fileWriter);
@@ -280,6 +281,11 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
             } else {
                 getLog().warn("Some erros have been identified, check logs.");
             }
+        }
+        try {
+            results.outputConfig(outputFolder, false);
+        } catch (Exception ex) {
+            throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
         }
         config = results.getProvisioningConfig();
         return config;
