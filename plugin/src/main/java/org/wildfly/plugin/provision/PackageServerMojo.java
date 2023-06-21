@@ -213,8 +213,8 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     @Parameter(defaultValue = "false", property = PropertyNames.SKIP_PACKAGE_DEPLOYMENT)
     protected boolean skipDeployment;
 
-    @Parameter(alias = "glow", required = false)
-    GlowConfig glow;
+    @Parameter(alias = "discover-provisioning-info", required = false)
+    GlowConfig discoverProvisioningInfo;
 
     @Parameter(alias = "bootable-jar", required = false, property = PropertyNames.BOOTABLE_JAR)
     boolean bootableJar;
@@ -232,7 +232,7 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     @Override
     protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm) throws MojoExecutionException,
             ProvisioningException, IOException, XMLStreamException {
-        if (glow == null) {
+        if (discoverProvisioningInfo == null) {
             config = super.buildGalleonConfig(pm);
             return config;
         }
@@ -257,7 +257,7 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
         if (!Files.exists(deploymentContent)) {
             throw new MojoExecutionException("A deployment is expected qhen enabling glow layer discovery");
         }
-        Arguments arguments = glow.toArguments(deploymentContent, inProvisioningFile);
+        Arguments arguments = discoverProvisioningInfo.toArguments(deploymentContent, inProvisioningFile);
         getLog().info("Glow is scanning... ");
         ScanResults results;
         MavenMessageWriter writer = new MavenMessageWriter();
@@ -273,8 +273,13 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
         } catch (Exception ex) {
             throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
         }
+
         if (results.getErrorSession().hasErrors()) {
-            getLog().warn("Some erros have been identified, check logs.");
+            if (discoverProvisioningInfo.isFailsOnError()) {
+                throw new MojoExecutionException("Error detected by glow. Aborting.");
+            } else {
+                getLog().warn("Some erros have been identified, check logs.");
+            }
         }
         config = results.getProvisioningConfig();
         return config;
