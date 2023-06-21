@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.wildfly.glow.Arguments;
+import org.wildfly.glow.OutputFormat;
 import org.wildfly.glow.ScanArguments.Builder;
 
 /**
@@ -52,7 +53,8 @@ public class GlowConfig {
         lst.add(deployment);
         Builder builder = Arguments.scanBuilder().setExecutionContext(context).setExecutionProfiles(profiles)
                 .setUserEnabledAddOns(addOns).setBinaries(lst).setSuggest(suggest).setJndiLayers(getLayersForJndi())
-                .setVersion(version);
+                .setVersion(version)
+                .setOutput(OutputFormat.PROVISIONING_XML);
         if (inProvisioning != null) {
             builder.setProvisoningXML(inProvisioning);
         }
