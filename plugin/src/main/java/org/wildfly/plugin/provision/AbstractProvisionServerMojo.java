@@ -185,6 +185,9 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
     @Parameter(alias = "channels", required = false)
     List<ChannelConfiguration> channels;
 
+    @Parameter(alias = "dry-run", required = false)
+    boolean dryRun;
+
     private Path wildflyDir;
 
     protected MavenRepoManager artifactResolver;
@@ -194,6 +197,9 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
         if (skip) {
             getLog().debug(String.format("Skipping " + getGoal() + " of %s:%s", project.getGroupId(), project.getArtifactId()));
             return;
+        }
+        if (dryRun) {
+            getLog().info("Dry run execution, no server provisioned.");
         }
         Path targetPath = Paths.get(project.getBuild().getDirectory());
         wildflyDir = targetPath.resolve(provisioningDir).normalize();
@@ -223,13 +229,15 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
         try {
             try {
                 provisionServer(wildflyDir);
-                if (artifactResolver instanceof ChannelMavenArtifactRepositoryManager) {
-                    ((ChannelMavenArtifactRepositoryManager) artifactResolver).done(wildflyDir);
+                if (!dryRun) {
+                    if (artifactResolver instanceof ChannelMavenArtifactRepositoryManager) {
+                        ((ChannelMavenArtifactRepositoryManager) artifactResolver).done(wildflyDir);
+                    }
+                    serverProvisioned(wildflyDir);
                 }
             } catch (ProvisioningException | IOException | XMLStreamException ex) {
                 throw new MojoExecutionException("Provisioning failed", ex);
             }
-            serverProvisioned(wildflyDir);
         } finally {
             // Although cli and embedded are run in their own classloader,
             // the module.path system property has been set and needs to be cleared for
@@ -255,6 +263,15 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                 .setRecordState(recordProvisioningState)
                 .build()) {
             ProvisioningConfig config = buildGalleonConfig(pm);
+            if (dryRun) {
+                Path targetPath = Paths.get(project.getBuild().getDirectory());
+                Path file = targetPath.resolve(PLUGIN_PROVISIONING_FILE);
+                getLog().info("Dry-run execution, generating provisioning.xml file: " + file);
+                try (FileWriter writer = new FileWriter(file.toFile())) {
+                    ProvisioningXmlWriter.getInstance().write(config, writer);
+                }
+                return;
+            }
             getLog().info("Provisioning server in " + home);
             PluginProgressTracker.initTrackers(pm, getLog());
             pm.provision(config);
@@ -274,8 +291,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
     }
 
     protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm)
-            throws MojoExecutionException, ProvisioningException,
-            IOException, XMLStreamException {
+            throws MojoExecutionException, ProvisioningException {
         ProvisioningConfig config = null;
         Path resolvedProvisioningFile = resolvePath(project, provisioningFile.toPath());
         boolean provisioningFileExists = Files.exists(resolvedProvisioningFile);

@@ -21,7 +21,6 @@ import static org.wildfly.plugin.core.Constants.STANDALONE;
 import static org.wildfly.plugin.core.Constants.STANDALONE_XML;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.xml.stream.XMLStreamException;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -49,17 +47,12 @@ import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.universe.FeaturePackLocation;
 import org.jboss.galleon.universe.maven.MavenArtifact;
 import org.jboss.galleon.util.IoUtils;
-import org.jboss.galleon.xml.ProvisioningXmlWriter;
-import org.wildfly.glow.Arguments;
-import org.wildfly.glow.GlowMessageWriter;
-import org.wildfly.glow.GlowSession;
-import org.wildfly.glow.ScanResults;
 import org.wildfly.plugin.cli.BaseCommandConfiguration;
 import org.wildfly.plugin.cli.CliSession;
 import org.wildfly.plugin.cli.OfflineCommandExecutor;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.common.StandardOutput;
-import org.wildfly.plugin.core.GalleonUtils;
+import org.wildfly.plugin.common.Utils;
 import org.wildfly.plugin.deployment.MojoDeploymentException;
 import org.wildfly.plugin.deployment.PackageType;
 import org.wildfly.plugins.bootablejar.ArtifactLog;
@@ -74,30 +67,6 @@ import org.wildfly.plugins.bootablejar.BootableJarSupport;
  */
 @Mojo(name = "package", requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME, defaultPhase = LifecyclePhase.PACKAGE)
 public class PackageServerMojo extends AbstractProvisionServerMojo {
-
-    private class MavenMessageWriter implements GlowMessageWriter {
-
-        @Override
-        public void info(Object s) {
-            getLog().info(s.toString());
-        }
-
-        @Override
-        public void warn(Object s) {
-            getLog().warn(s.toString());
-        }
-
-        @Override
-        public void error(Object s) {
-            getLog().error(s.toString());
-        }
-
-        @Override
-        public void trace(Object s) {
-            getLog().debug(s.toString());
-        }
-
-    }
 
     /**
      * A list of directories to copy content to the provisioned server. If a
@@ -230,65 +199,28 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     }
 
     @Override
-    protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm) throws MojoExecutionException,
-            ProvisioningException, IOException, XMLStreamException {
+    protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm)
+            throws MojoExecutionException, ProvisioningException {
         if (discoverProvisioningInfo == null) {
             config = super.buildGalleonConfig(pm);
             return config;
         }
-        if (!layers.isEmpty()) {
-            throw new MojoExecutionException("layers must be empty when enabling glow");
-        }
-        if (!excludedLayers.isEmpty()) {
-            throw new MojoExecutionException("excluded layers must be empty when enabling glow");
-        }
-        Path inProvisioningFile = null;
-        Path outputFolder = Paths.get(project.getBuild().getDirectory()).resolve("glow-scan");
-        Files.createDirectories(outputFolder);
-        if (!featurePacks.isEmpty()) {
-            ProvisioningConfig in = GalleonUtils.buildConfig(pm, featurePacks, layers, excludedLayers, galleonOptions,
-                    layersConfigurationFileName);
-            inProvisioningFile = outputFolder.resolve("glow-in-provisioning.xml");
-            try (FileWriter fileWriter = new FileWriter(inProvisioningFile.toFile())) {
-                ProvisioningXmlWriter.getInstance().write(in, fileWriter);
-            }
-        }
-
-        final Path deploymentContent = getDeploymentContent();
-        if (!Files.exists(deploymentContent)) {
-            throw new MojoExecutionException("A deployment is expected qhen enabling glow layer discovery");
-        }
-        Arguments arguments = discoverProvisioningInfo.toArguments(deploymentContent, inProvisioningFile);
-        getLog().info("Glow is scanning... ");
-        ScanResults results;
-        MavenMessageWriter writer = new MavenMessageWriter();
         try {
-            results = GlowSession.scan(artifactResolver, arguments, writer);
+            return Utils.scanDeployment(discoverProvisioningInfo,
+                    layers,
+                    excludedLayers,
+                    featurePacks,
+                    dryRun,
+                    getLog(),
+                    getDeploymentContent(),
+                    artifactResolver,
+                    Paths.get(project.getBuild().getDirectory()),
+                    pm,
+                    galleonOptions,
+                    layersConfigurationFileName).getProvisioningConfig();
         } catch (Exception ex) {
             throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
         }
-
-        getLog().info("Glow scanning DONE.");
-        try {
-            results.outputInformation(writer);
-        } catch (Exception ex) {
-            throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
-        }
-
-        if (results.getErrorSession().hasErrors()) {
-            if (discoverProvisioningInfo.isFailsOnError()) {
-                throw new MojoExecutionException("Error detected by glow. Aborting.");
-            } else {
-                getLog().warn("Some erros have been identified, check logs.");
-            }
-        }
-        try {
-            results.outputConfig(outputFolder, false);
-        } catch (Exception ex) {
-            throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
-        }
-        config = results.getProvisioningConfig();
-        return config;
     }
 
     @Override
