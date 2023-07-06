@@ -128,7 +128,7 @@
         <plugin.fork.embedded>true</plugin.fork.embedded>
 
         <!-- bootable JAR -->
-        <version.bootable.jar>9.0.1.Final-SNAPSHOT</version.bootable.jar>
+        <version.bootable.jar>10.0.0.Beta1</version.bootable.jar>
 
         <!-- used by tests -->
         <version.org.jboss.logging.slf4j-jboss-logging>1.2.1.Final</version.org.jboss.logging.slf4j-jboss-logging>
