@@ -40,6 +40,7 @@ public class GlowConfig {
     boolean suggest;
     private Set<String> layersForJndi = Collections.emptySet();
     private boolean failsOnError = true;
+    boolean preview;
 
     public GlowConfig() {
     }
@@ -54,6 +55,7 @@ public class GlowConfig {
         Builder builder = Arguments.scanBuilder().setExecutionContext(context).setExecutionProfiles(profiles)
                 .setUserEnabledAddOns(addOns).setBinaries(lst).setSuggest(suggest).setJndiLayers(getLayersForJndi())
                 .setVersion(version)
+                .setTechPreview(preview)
                 .setOutput(OutputFormat.PROVISIONING_XML);
         if (inProvisioning != null) {
             builder.setProvisoningXML(inProvisioning);
@@ -157,5 +159,19 @@ public class GlowConfig {
      */
     public void setFailsOnError(boolean failsOnError) {
         this.failsOnError = failsOnError;
+    }
+
+    /**
+     * @param preview the preview to set
+     */
+    public void setPreview(boolean preview) {
+        this.preview = preview;
+    }
+
+    /**
+     * @return the preview
+     */
+    public boolean isPreview() {
+        return preview;
     }
 }
