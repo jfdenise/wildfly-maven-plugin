@@ -33,6 +33,8 @@ public interface PropertyNames {
 
     String BATCH = "wildfly.batch";
 
+    String BOOTABLE_JAR = "wildfly.bootable.jar";
+
     String CHANNELS = "wildfly.channels";
 
     String CHECK_PACKAGING = "wildfly.checkPackaging";

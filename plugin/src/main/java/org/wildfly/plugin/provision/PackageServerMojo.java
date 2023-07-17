@@ -42,6 +42,9 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.jboss.galleon.ProvisioningException;
 import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ProvisioningConfig;
+import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
+import org.jboss.galleon.universe.FeaturePackLocation;
+import org.jboss.galleon.universe.maven.MavenArtifact;
 import org.jboss.galleon.util.IoUtils;
 import org.wildfly.plugin.cli.BaseCommandConfiguration;
 import org.wildfly.plugin.cli.CliSession;
@@ -51,6 +54,8 @@ import org.wildfly.plugin.common.StandardOutput;
 import org.wildfly.plugin.common.Utils;
 import org.wildfly.plugin.deployment.MojoDeploymentException;
 import org.wildfly.plugin.deployment.PackageType;
+import org.wildfly.plugins.bootablejar.ArtifactLog;
+import org.wildfly.plugins.bootablejar.BootableJarSupport;
 
 /**
  * Provision a server, copy extra content and deploy primary artifact if it
@@ -223,8 +228,13 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     @Parameter(alias = "discover-provisioning-info")
     private GlowConfig discoverProvisioningInfo;
 
+    @Parameter(alias = "bootable-jar", required = false, property = PropertyNames.BOOTABLE_JAR)
+    boolean bootableJar;
+
     @Inject
     private OfflineCommandExecutor commandExecutor;
+
+    private ProvisioningConfig config;
 
     @Override
     protected ProvisioningConfig getDefaultConfig() {
@@ -235,7 +245,8 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm)
             throws MojoExecutionException, ProvisioningException {
         if (discoverProvisioningInfo == null) {
-            return super.buildGalleonConfig(pm);
+            config = super.buildGalleonConfig(pm);
+            return config;
         }
         try {
             return Utils.scanDeployment(discoverProvisioningInfo,
@@ -328,9 +339,44 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
             }
 
             cleanupServer(jbossHome);
-        } catch (IOException ex) {
+            if (bootableJar) {
+                packageBootableJar(jbossHome, config);
+            }
+        } catch (Exception ex) {
             throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
         }
+    }
+
+    private void packageBootableJar(Path jbossHome, ProvisioningConfig activeConfig) throws Exception {
+        Path target = jbossHome.getParent();
+        final Path deploymentContent = getDeploymentContent();
+        String bootableJarName = "server";
+        if (Files.exists(deploymentContent)) {
+            int i = deploymentContent.getFileName().toString().lastIndexOf(".");
+            bootableJarName = deploymentContent.getFileName().toString().substring(0, i);
+        }
+        Path targetPath = Paths.get(project.getBuild().getDirectory());
+        Path targetJarFile = targetPath.toAbsolutePath()
+                .resolve(bootableJarName + "-" + BootableJarSupport.BOOTABLE_SUFFIX + ".jar");
+        Files.deleteIfExists(targetJarFile);
+        BootableJarSupport.packageBootableJar(targetJarFile, targetPath,
+                activeConfig, jbossHome,
+                artifactResolver,
+                new MvnMessageWriter(getLog()), new ArtifactLog() {
+                    @Override
+                    public void info(FeaturePackLocation.FPID fpid, MavenArtifact a) {
+                        getLog().info("Found artifact " + a);
+                    }
+
+                    @Override
+                    public void debug(FeaturePackLocation.FPID fpid, MavenArtifact a) {
+                        if (getLog().isDebugEnabled()) {
+                            getLog().debug("Found artifact " + a);
+                        }
+                    }
+                }, null);
+        IoUtils.recursiveDelete(jbossHome);
+        getLog().info("Bootable JAR packaging DONE. To run the server: java -jar " + targetJarFile);
     }
 
     /**

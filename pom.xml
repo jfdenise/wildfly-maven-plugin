@@ -126,6 +126,10 @@
         <version.org.jboss.galleon>5.2.2.Final</version.org.jboss.galleon>
         <version.org.wildfly.glow>1.0.0.Alpha6</version.org.wildfly.glow>
         <plugin.fork.embedded>true</plugin.fork.embedded>
+
+        <!-- bootable JAR -->
+        <version.bootable.jar>10.0.0.Final</version.bootable.jar>
+
         <!-- used by tests -->
         <version.org.jboss.logging.slf4j-jboss-logging>1.2.1.Final</version.org.jboss.logging.slf4j-jboss-logging>
 
@@ -436,6 +440,17 @@
                 <groupId>org.wildfly.glow</groupId>
                 <artifactId>wildfly-glow-core</artifactId>
                 <version>${version.org.wildfly.glow}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-jar-maven-plugin-core</artifactId>
+                <version>${version.bootable.jar}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <!-- Test dependencies -->
             <dependency>
