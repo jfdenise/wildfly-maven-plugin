@@ -40,6 +40,8 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.jboss.galleon.ProvisioningDescriptionException;
+import org.jboss.galleon.ProvisioningException;
+import org.jboss.galleon.ProvisioningManager;
 import org.jboss.galleon.config.ProvisioningConfig;
 import org.jboss.galleon.util.IoUtils;
 import org.wildfly.plugin.cli.BaseCommandConfiguration;
@@ -47,6 +49,7 @@ import org.wildfly.plugin.cli.CliSession;
 import org.wildfly.plugin.cli.OfflineCommandExecutor;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.common.StandardOutput;
+import org.wildfly.plugin.common.Utils;
 import org.wildfly.plugin.deployment.MojoDeploymentException;
 import org.wildfly.plugin.deployment.PackageType;
 
@@ -174,12 +177,42 @@ public class PackageServerMojo extends AbstractProvisionServerMojo {
     @Parameter(defaultValue = "false", property = PropertyNames.SKIP_PACKAGE_DEPLOYMENT)
     protected boolean skipDeployment;
 
+    @Parameter(alias = "discover-provisioning-info", required = false)
+    GlowConfig discoverProvisioningInfo;
+
     @Inject
     private OfflineCommandExecutor commandExecutor;
+
+    private ProvisioningConfig config;
 
     @Override
     protected ProvisioningConfig getDefaultConfig() throws ProvisioningDescriptionException {
         return null;
+    }
+
+    @Override
+    protected ProvisioningConfig buildGalleonConfig(ProvisioningManager pm)
+            throws MojoExecutionException, ProvisioningException {
+        if (discoverProvisioningInfo == null) {
+            config = super.buildGalleonConfig(pm);
+            return config;
+        }
+        try {
+            return Utils.scanDeployment(discoverProvisioningInfo,
+                    layers,
+                    excludedLayers,
+                    featurePacks,
+                    dryRun,
+                    getLog(),
+                    getDeploymentContent(),
+                    artifactResolver,
+                    Paths.get(project.getBuild().getDirectory()),
+                    pm,
+                    galleonOptions,
+                    layersConfigurationFileName).getProvisioningConfig();
+        } catch (Exception ex) {
+            throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
+        }
     }
 
     @Override
