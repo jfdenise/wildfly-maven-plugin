@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+import org.wildfly.channel.ChannelSession;
 import org.wildfly.glow.Arguments;
 import org.wildfly.glow.OutputFormat;
 import org.wildfly.glow.ScanArguments.Builder;
@@ -33,7 +34,8 @@ public class GlowConfig {
     public GlowConfig() {
     }
 
-    public Arguments toArguments(Path deployment, Path inProvisioning, String layersConfigurationFileName) {
+    public Arguments toArguments(Path deployment, Path inProvisioning, String layersConfigurationFileName,
+            ChannelSession session) {
         final Set<String> profiles = profile != null ? Set.of(profile) : Set.of();
         List<Path> lst = List.of(deployment);
         Builder builder = Arguments.scanBuilder().setExecutionContext(context).setExecutionProfiles(profiles)
@@ -48,6 +50,9 @@ public class GlowConfig {
         }
         if (layersConfigurationFileName != null) {
             builder.setConfigName(layersConfigurationFileName);
+        }
+        if (session != null) {
+            builder.setChannelSession(session);
         }
         return builder.build();
     }

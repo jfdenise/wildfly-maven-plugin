@@ -24,6 +24,7 @@ import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
 import org.wildfly.glow.Arguments;
 import org.wildfly.glow.GlowSession;
 import org.wildfly.glow.ScanResults;
+import org.wildfly.plugin.provision.ChannelMavenArtifactRepositoryManager;
 import org.wildfly.plugin.provision.GlowConfig;
 import org.wildfly.plugin.tools.GalleonUtils;
 
@@ -135,7 +136,10 @@ public class Utils {
             }
         }
         Arguments arguments = discoverProvisioningInfo.toArguments(deploymentContent, inProvisioningFile,
-                layersConfigurationFileName);
+                layersConfigurationFileName,
+                (artifactResolver instanceof ChannelMavenArtifactRepositoryManager
+                        ? ((ChannelMavenArtifactRepositoryManager) artifactResolver).getChannelSession()
+                        : null));
         log.info("Glow is scanning... ");
         ScanResults results;
         GlowMavenMessageWriter writer = new GlowMavenMessageWriter(log);
