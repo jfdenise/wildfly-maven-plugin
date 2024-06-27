@@ -29,9 +29,9 @@ import org.jboss.galleon.api.config.GalleonProvisioningConfig;
 import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
 import org.wildfly.glow.Arguments;
+import org.wildfly.glow.ChannelBuilder;
 import org.wildfly.glow.GlowSession;
 import org.wildfly.glow.ScanResults;
-import org.wildfly.plugin.provision.ChannelMavenArtifactRepositoryManager;
 import org.wildfly.plugin.provision.GlowConfig;
 import org.wildfly.plugin.tools.GalleonUtils;
 import org.wildfly.plugin.tools.bootablejar.BootableJarSupport;
@@ -121,7 +121,8 @@ public class Utils {
             Path outputFolder,
             GalleonBuilder pm,
             Map<String, String> galleonOptions,
-            String layersConfigurationFileName) throws Exception {
+            String layersConfigurationFileName,
+            ChannelBuilder channelBuilder) throws Exception {
         if (!layers.isEmpty()) {
             throw new MojoExecutionException("layers must be empty when enabling glow");
         }
@@ -143,15 +144,12 @@ public class Utils {
             }
         }
         Arguments arguments = discoverProvisioningInfo.toArguments(deploymentContent, inProvisioningFile,
-                layersConfigurationFileName,
-                (artifactResolver instanceof ChannelMavenArtifactRepositoryManager
-                        ? ((ChannelMavenArtifactRepositoryManager) artifactResolver).getChannelSession()
-                        : null));
+                layersConfigurationFileName);
         log.info("Glow is scanning... ");
         ScanResults results;
         GlowMavenMessageWriter writer = new GlowMavenMessageWriter(log);
         try {
-            results = GlowSession.scan(artifactResolver, arguments, writer);
+            results = GlowSession.scan(artifactResolver, arguments, writer, channelBuilder);
         } catch (Exception ex) {
             throw new MojoExecutionException(ex.getLocalizedMessage(), ex);
         }

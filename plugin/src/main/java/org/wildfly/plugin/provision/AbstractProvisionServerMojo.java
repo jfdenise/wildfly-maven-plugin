@@ -41,6 +41,7 @@ import org.jboss.galleon.maven.plugin.util.MvnMessageWriter;
 import org.jboss.galleon.universe.maven.repo.MavenRepoManager;
 import org.jboss.galleon.util.IoUtils;
 import org.wildfly.channel.UnresolvedMavenArtifactException;
+import org.wildfly.plugin.common.ChannelMavenArtifactRepositoryManager;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.common.Utils;
 import org.wildfly.plugin.core.MavenJBossLogger;
@@ -249,7 +250,7 @@ abstract class AbstractProvisionServerMojo extends AbstractMojo {
                     : new MavenArtifactRepositoryManager(repoSystem, repoSession, repositories);
         } else {
             try {
-                artifactResolver = new ChannelMavenArtifactRepositoryManager(channels,
+                artifactResolver = ChannelMavenArtifactRepositoryManager.newChannelResolverFromConfig(channels,
                         repoSystem, repoSession, repositories,
                         getLog(), offlineProvisioning);
             } catch (MalformedURLException | UnresolvedMavenArtifactException ex) {

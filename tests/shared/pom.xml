@@ -26,6 +26,12 @@
         <dependency>
             <groupId>org.jboss.galleon</groupId>
             <artifactId>galleon-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.wildfly.plugins</groupId>

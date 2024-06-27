@@ -2,7 +2,7 @@
  * Copyright The WildFly Authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.wildfly.plugin.provision;
+package org.wildfly.plugin.common;
 
 import static org.wildfly.channel.maven.VersionResolverFactory.DEFAULT_REPOSITORY_MAPPER;
 
@@ -41,6 +41,7 @@ import org.jboss.galleon.util.ZipUtils;
 import org.wildfly.channel.ArtifactTransferException;
 import org.wildfly.channel.Channel;
 import org.wildfly.channel.ChannelManifest;
+import org.wildfly.channel.ChannelManifestCoordinate;
 import org.wildfly.channel.ChannelSession;
 import org.wildfly.channel.NoStreamFoundException;
 import org.wildfly.channel.Repository;
@@ -48,6 +49,7 @@ import org.wildfly.channel.UnresolvedMavenArtifactException;
 import org.wildfly.channel.VersionResult;
 import org.wildfly.channel.maven.VersionResolverFactory;
 import org.wildfly.channel.spi.ChannelResolvable;
+import org.wildfly.plugin.provision.ChannelConfiguration;
 import org.wildfly.prospero.metadata.ManifestVersionRecord;
 import org.wildfly.prospero.metadata.ManifestVersionResolver;
 import org.wildfly.prospero.metadata.ProsperoMetadataUtils;
@@ -64,7 +66,7 @@ public class ChannelMavenArtifactRepositoryManager implements MavenRepoManager, 
     private final DefaultRepositorySystemSession session;
     private final List<RemoteRepository> repositories;
 
-    public ChannelMavenArtifactRepositoryManager(List<ChannelConfiguration> channels,
+    private ChannelMavenArtifactRepositoryManager(List<Channel> channels,
             RepositorySystem system,
             RepositorySystemSession contextSession,
             List<RemoteRepository> repositories, Log log, boolean offline)
@@ -81,9 +83,7 @@ public class ChannelMavenArtifactRepositoryManager implements MavenRepoManager, 
         for (RemoteRepository r : repositories) {
             mapping.put(r.getId(), r);
         }
-        for (ChannelConfiguration channelConfiguration : channels) {
-            this.channels.add(channelConfiguration.toChannel(repositories));
-        }
+        this.channels.addAll(channels);
         Function<Repository, RemoteRepository> mapper = r -> {
             RemoteRepository rep = mapping.get(r.getId());
             if (rep == null) {
@@ -95,6 +95,34 @@ public class ChannelMavenArtifactRepositoryManager implements MavenRepoManager, 
         channelSession = new ChannelSession(this.channels, factory);
         localCachePath = contextSession.getLocalRepositoryManager().getRepository().getBasedir().toPath();
         this.system = system;
+    }
+
+    public static MavenRepoManager newChannelResolverFromConfig(List<ChannelConfiguration> channels,
+            RepositorySystem system,
+            RepositorySystemSession contextSession,
+            List<RemoteRepository> repositories, Log log, boolean offline)
+            throws MojoExecutionException, MalformedURLException {
+        List<Channel> lst = new ArrayList<>();
+        for (ChannelConfiguration channelConfiguration : channels) {
+            lst.add(channelConfiguration.toChannel(repositories));
+        }
+        return new ChannelMavenArtifactRepositoryManager(lst, system, contextSession, repositories, log, offline);
+    }
+
+    public static MavenRepoManager newChannelResolver(List<Channel> channels,
+            RepositorySystem system,
+            RepositorySystemSession contextSession,
+            List<RemoteRepository> repositories, Log log, boolean offline)
+            throws MojoExecutionException, MalformedURLException {
+        return new ChannelMavenArtifactRepositoryManager(channels, system, contextSession, repositories, log, offline);
+    }
+
+    static Channel buildChannel(ChannelManifestCoordinate coordinates, List<RemoteRepository> repositories) {
+        List<Repository> repos = new ArrayList<>();
+        for (RemoteRepository r : repositories) {
+            repos.add(new Repository(r.getId(), r.getUrl()));
+        }
+        return new Channel(null, null, null, repos, coordinates, null, null);
     }
 
     public ChannelSession getChannelSession() {

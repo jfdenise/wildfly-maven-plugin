@@ -19,6 +19,7 @@ import org.jboss.galleon.api.config.GalleonProvisioningConfig;
 import org.wildfly.glow.ScanResults;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.common.Utils;
+import org.wildfly.plugin.common.WildFlyGlowChannelBuilder;
 import org.wildfly.plugin.tools.bootablejar.BootableJarSupport;
 
 /**
@@ -130,7 +131,12 @@ public class PackageServerMojo extends AbstractPackageServerMojo {
                     Paths.get(project.getBuild().getDirectory()),
                     pm,
                     galleonOptions,
-                    layersConfigurationFileName)) {
+                    layersConfigurationFileName,
+                    new WildFlyGlowChannelBuilder(repoSystem,
+                            repoSession,
+                            repositories,
+                            getLog(),
+                            offlineProvisioning))) {
                 config = results.getProvisioningConfig();
                 return config;
             }

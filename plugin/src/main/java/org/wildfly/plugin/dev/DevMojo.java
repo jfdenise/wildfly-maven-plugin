@@ -76,13 +76,14 @@ import org.wildfly.core.launcher.CommandBuilder;
 import org.wildfly.glow.ScanResults;
 import org.wildfly.plugin.cli.CommandConfiguration;
 import org.wildfly.plugin.cli.CommandExecutor;
+import org.wildfly.plugin.common.ChannelMavenArtifactRepositoryManager;
 import org.wildfly.plugin.common.Environment;
 import org.wildfly.plugin.common.PropertyNames;
 import org.wildfly.plugin.common.Utils;
+import org.wildfly.plugin.common.WildFlyGlowChannelBuilder;
 import org.wildfly.plugin.core.MavenJBossLogger;
 import org.wildfly.plugin.deployment.PackageType;
 import org.wildfly.plugin.provision.ChannelConfiguration;
-import org.wildfly.plugin.provision.ChannelMavenArtifactRepositoryManager;
 import org.wildfly.plugin.provision.GlowConfig;
 import org.wildfly.plugin.server.AbstractServerStartMojo;
 import org.wildfly.plugin.server.ServerContext;
@@ -518,7 +519,7 @@ public class DevMojo extends AbstractServerStartMojo {
                     : new MavenArtifactRepositoryManager(repoSystem, session, repositories);
         } else {
             try {
-                return new ChannelMavenArtifactRepositoryManager(channels,
+                return ChannelMavenArtifactRepositoryManager.newChannelResolverFromConfig(channels,
                         repoSystem, session, repositories,
                         getLog(), offlineProvisioning);
             } catch (MalformedURLException | UnresolvedMavenArtifactException ex) {
@@ -669,7 +670,12 @@ public class DevMojo extends AbstractServerStartMojo {
                 Paths.get(project.getBuild().getDirectory()),
                 pm,
                 galleonOptions,
-                serverConfig);
+                serverConfig,
+                new WildFlyGlowChannelBuilder(repoSystem,
+                        session,
+                        repositories,
+                        getLog(),
+                        offlineProvisioning));
     }
 
     private void provisionServer(Provisioning pm, GalleonProvisioningConfig config)
